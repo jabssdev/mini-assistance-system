@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { db, seedIfEmpty } from "../db/db";
 import type { AttendanceStatus, Student, TermConfig } from "../types/domain";
 
 type State = {
@@ -8,52 +9,46 @@ type State = {
 };
 
 type Actions = {
-	seedStudents: (names?: string[]) => void;
+	loadFromDB: () => Promise<void>;
 	setAttendance: (studentId: string, day: number, status: AttendanceStatus) => void;
 	clearAll: () => void;
 };
 
 const DEFAULT_TERM: TermConfig = { id: "default", days: 30, absenceThreshold: 0.1 };
 
-const DEFAULT_19: string[] = [
-	"Alumno 01",
-	"Alumno 02",
-	"Alumno 03",
-	"Alumno 04",
-	"Alumno 05",
-	"Alumno 06",
-	"Alumno 07",
-	"Alumno 08",
-	"Alumno 09",
-	"Alumno 10",
-	"Alumno 11",
-	"Alumno 12",
-	"Alumno 13",
-	"Alumno 14",
-	"Alumno 15",
-	"Alumno 16",
-	"Alumno 17",
-	"Alumno 18",
-	"Alumno 19",
-];
-
 export const useAttendanceStore = create<State & Actions>()((set) => ({
 	term: DEFAULT_TERM,
 	students: [],
 	attendance: {},
 
-	seedStudents: (names = DEFAULT_19) =>
-		set(() => ({
-			students: names.map((name, i) => ({ id: String(i + 1), name })),
-		})),
+	loadFromDB: async () => {
+		await seedIfEmpty();
+		const [students, term, attendance] = await Promise.all([db.students.orderBy("name").toArray(), db.term.get("default"), db.attendance.toArray()]);
+
+		const map: Record<string, Record<number, AttendanceStatus>> = {};
+		for (const a of attendance) {
+			if (!map[a.studentId]) map[a.studentId] = {};
+			map[a.studentId][a.day] = a.status;
+		}
+
+		set({
+			students,
+			term: term || { id: "default", days: 30, absenceThreshold: 0.1 },
+			attendance: map,
+		});
+	},
 
 	setAttendance: (studentId, day, status) =>
-		set((s) => ({
-			attendance: {
+		set((s) => {
+			const attendance = {
 				...s.attendance,
 				[studentId]: { ...(s.attendance[studentId] || {}), [day]: status },
-			},
-		})),
+			};
+
+			const id = `${studentId}-${day}`;
+			db.attendance.put({ id, studentId, day, status }).catch(console.error);
+			return { attendance };
+		}),
 
 	clearAll: () => set({ students: [], attendance: {} }),
 }));
