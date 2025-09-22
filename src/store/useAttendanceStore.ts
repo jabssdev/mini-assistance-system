@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { db, seedIfEmpty } from "../db/db";
 import type { AttendanceStatus, Student, TermConfig } from "../types/domain";
 
-type State = {
+export type State = {
 	term: TermConfig;
 	students: Student[];
 	attendance: Record<string, Record<number, AttendanceStatus>>;
@@ -14,7 +14,7 @@ type Actions = {
 	clearAll: () => void;
 };
 
-const DEFAULT_TERM: TermConfig = { id: "default", days: 30, absenceThreshold: 0.1 };
+const DEFAULT_TERM: TermConfig = { id: "default", days: 30, absenceThreshold: 0.3 };
 
 export const useAttendanceStore = create<State & Actions>()((set) => ({
 	term: DEFAULT_TERM,
@@ -33,7 +33,7 @@ export const useAttendanceStore = create<State & Actions>()((set) => ({
 
 		set({
 			students,
-			term: term || { id: "default", days: 30, absenceThreshold: 0.1 },
+			term: term || { id: "default", days: 30, absenceThreshold: 0.3 },
 			attendance: map,
 		});
 	},
@@ -52,23 +52,3 @@ export const useAttendanceStore = create<State & Actions>()((set) => ({
 
 	clearAll: () => set({ students: [], attendance: {} }),
 }));
-
-// Helper
-export const selectStudentSummary = (studentId: string) => (state: State) => {
-	const { days, absenceThreshold } = state.term;
-	const map = state.attendance[studentId] || {};
-
-	let P = 0,
-		F = 0;
-	for (let d = 1; d <= days; d++) {
-		if (map[d] === "P") P++;
-		if (map[d] === "F") F++;
-	}
-
-	const pctF = days > 0 ? (F / days) * 100 : 0;
-	const maxF = Math.floor(days * absenceThreshold);
-	const completed = P + F === days;
-	const aprobado = completed && F <= maxF;
-
-	return { P, F, pctF, maxF, completed, aprobado };
-};
