@@ -1,11 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAttendanceStore } from "../store/useAttendanceStore";
 import DashboardActions from "../components/DashboardActions";
 import StudentTable from "../components/StudentTable";
+import RegisterAttendanceModal from "../components/RegisterAttendanceModal";
 
 export default function DashboardPage() {
 	const students = useAttendanceStore((s) => s.students);
 	const load = useAttendanceStore((s) => s.loadFromDB);
+	const [open, setOpen] = useState(false);
 
 	useEffect(() => {
 		load();
@@ -17,11 +19,13 @@ export default function DashboardPage() {
 
 			<DashboardActions
 				onOpenRegister={() => {
-					console.log("Abrir modal de registro");
+					setOpen(true);
 				}}
 			/>
 
 			<StudentTable students={students} />
+
+			<RegisterAttendanceModal open={open} onClose={() => setOpen(false)} />
 		</div>
 	);
 }
