@@ -15,7 +15,7 @@ export default function DashboardPage() {
 
 	return (
 		<div className="p-6 max-w-3xl mx-auto space-y-4">
-			<h1 className="text-3xl font-bold">Sistema de Asistencia 🚀</h1>
+			<h1 className="text-3xl font-bold text-gray-900">Sistema de Asistencia 🚀</h1>
 
 			<DashboardActions
 				onOpenRegister={() => {
